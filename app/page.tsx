@@ -1,33 +1,86 @@
+"use client"
+import { useForm } from "react-hook-form"
+import { zodResolver } from "@hookform/resolvers/zod"
+import * as z from "zod"
+import { useState } from "react"
+
 import './home.css'
 
+const schema = z.object({
+  mobile: z.string()
+    .min(11, "手机号必须是11位数字")
+    .max(11, "手机号必须是11位数字")
+    .regex(/^1[3-9]\d{9}$/, "请输入有效的手机号"),
+  code: z.string()
+    .min(6, "验证码必须是6位数字")
+    .max(6, "验证码必须是6位数字")
+})
+
+type FormData = z.infer<typeof schema>
+
 export default function Home() {
+  const [isSubmitting, setIsSubmitting] = useState<boolean>(false)
+  const {
+    register,
+    setValue,
+    handleSubmit,
+    formState: { errors },
+    watch
+  } = useForm<FormData>({
+    resolver: zodResolver(schema),
+    mode: "onChange"
+  })
+
+  const mobile = watch("mobile")
+
+  const getCode = () => {
+    // 模拟获取验证码
+    setValue("code", "123456", { shouldValidate: true })
+  }
+
+  const onSubmit = async (data: FormData) => {
+    setIsSubmitting(true)
+    // 模拟API请求
+    await new Promise(resolve => setTimeout(resolve, 1000))
+    console.log(data)
+    setIsSubmitting(false)
+  }
+  
   return (
     <form>
       <div className="form-item">
-        <input placeholder="手机号" name="mobile" />
-        {/* 表单错误提示，会出现两种情况
-        1.必填校验，错误提示“请输入手机号”
-        2.格式校验，需满足国内手机号规则，错误提示“手机号格式错误”
-        举例：<p className="form-error">手机号格式错误</p> */}
+        <input placeholder="手机号" {...register("mobile")} />
+        {errors.mobile && (
+            <p className="text-red-500 text-sm mt-1">{errors.mobile.message}</p>
+          )}
       </div>
 
       <div className="form-item">
         <div className="input-group">
-          <input placeholder="验证码" name="code" />
+          <input placeholder="验证码" {...register("code")} />
           {/* getcode默认disabled=true，当mobile满足表单验证条件后才位false */}
-          <button className="getcode" disabled>
+          <button
+            className="getcode"
+            type="button"
+            disabled={!!errors.mobile || !mobile}
+            onClick={getCode}
+          >
             获取验证码
           </button>
         </div>
-        {/* 表单错误提示，会出现两种情况
-        
-        1.必填校验，错误提示“请输入验证码”
-        2.格式校验，6位数字，错误提示“验证码格式错误”
-        举例：<p className="form-error">验证码格式错误</p> */}
+        {errors.code && (
+            <p className="text-red-500 text-sm mt-1">{errors.code.message}</p>
+          )}
       </div>
 
       {/* 表单提交中，按钮内的文字会变成“submiting......” */}
-      <button className="submit-btn">登录</button>
+      <button
+        className="submit-btn"
+        disabled={isSubmitting}
+        onClick={handleSubmit(onSubmit)}
+      >
+        {isSubmitting ? "提交中..." : "登录"}
+      </button>
     </form>
   );
 }
